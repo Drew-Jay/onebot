@@ -180,3 +180,109 @@
 * 单线程事件循环搭配语言层面的协程，非常适合此类io密集型应用，从根源上杜绝多线程带来的数据竞争等奇怪问题。
 * 考虑到JavaScript仍然是使用人数最多的编程语言，而项目运行时完全开源，使得任何人都可以尝试解决问题，而不仅限于发现问题。
 * 使用最新的ECMAScript2010语法，用最少的代码实现所需功能，使项目可维护性显著提升。便于阅读和调试的源码，带你走进底层OICQ协议的世界。
+
+----
+
+## 容器化
+
+方便用docker部署（其实主要为了重启方便
+
+docker版本仅供参考
+```
+# docker version
+Client:
+ Version:           18.06.3-ce
+ API version:       1.38
+ Go version:        go1.10.3
+ Git commit:        d7080c1
+ Built:             Wed Feb 20 02:26:51 2019
+ OS/Arch:           linux/amd64
+ Experimental:      false
+
+Server:
+ Engine:
+  Version:          18.06.3-ce
+  API version:      1.38 (minimum version 1.12)
+  Go version:       go1.10.3
+  Git commit:       d7080c1
+  Built:            Wed Feb 20 02:28:17 2019
+  OS/Arch:          linux/amd64
+  Experimental:     false
+```
+
+docker-compose版本仅供参考
+```
+# docker-compose version
+docker-compose version 1.18.0, build 8dd22a9
+docker-py version: 2.6.1
+CPython version: 3.6.8
+OpenSSL version: OpenSSL 1.0.2k-fips  26 Jan 2017
+```
+
+构建docker image需要用户自己决定nodejs版本，这里以node-v12.19.0-linux-x64.tar为例，并以3449xxx644这个QQ号做说明
+
+1. 下载node-v12.19.0-linux-x64.tar到工程路径，并解压。此时目录长这样
+```
+# tree -L 2 .
+.
+├── config.sample.js.bak
+├── data                 # docker-compose挂载出来了而已
+│   ├── 3449xxx644
+│   ├── image
+│   └── record
+├── docker-compose.yaml # docker-compose的配置文件，根据需要修改
+├── Dockerfile          # docker built 用的
+├── lib
+│   ├── api.js
+│   ├── core.js
+│   └── cq-notice.js
+├── LICENSE
+├── main.js
+├── node-v12.19.0-linux-x64
+│   ├── bin
+│   ├── CHANGELOG.md
+│   ├── include
+│   ├── lib
+│   ├── LICENSE
+│   ├── README.md
+│   └── share
+├── node-v12.19.0-linux-x64.tar
+├── package.json
+└── README.md
+```
+
+2. 改一下Dockerfile文件
+
+软链的原地址替换成你解压的nodejs版本目录
+
+```
+RUN ln -s /root/node-v12.19.0-linux-x64/bin/node /usr/bin/node && ln -s /root/node-v12.19.0-linux-x64/bin/npm /usr/bin/npm && ln -s /root/node-v12.19.0-linux-x64/bin/npx /usr/bin/npx
+
+改成
+RUN ln -s /root/${你的版本}/bin/node /usr/bin/node && ln -s /root/${你的版本}/bin/npm /usr/bin/npm && ln -s /root/${你的版本}/bin/npx /usr/bin/npx
+
+```
+
+启动命令请改成自己的QQ号
+```
+CMD ["node", "main","3449xxx644"]
+
+改成
+
+CMD ["node", "main","${自己的qq号}"]
+```
+
+3. 可以build镜像了
+
+```
+docker build -t onebot:v1 . 
+```
+
+4. 用docker-compose启动
+
+这里的挂载和网络可以根据需要更改，不需要修改的直接
+
+```
+docker-compose up -d
+```
+
